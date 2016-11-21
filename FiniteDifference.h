@@ -5,10 +5,12 @@
 #ifndef SUPERCOMPUTING_FINITEDIFFERENCE_H
 #define SUPERCOMPUTING_FINITEDIFFERENCE_H
 
+#include "Condition.h"
+
 
 class FiniteDifference {
 public:
-    FiniteDifference(int x_grid_n, int y_grid_n, int x_proc_n, int y_proc_n, int process_id,
+    FiniteDifference(Condition *_c, int x_grid_n, int y_grid_n, int x_proc_n, int y_proc_n, int process_id,
                      double X1, double X2, double Y1, double Y2);
 private:
     // coordinates for cell
@@ -26,10 +28,17 @@ private:
     // border indicators
     bool left, right, top, bottom;
 
+    // algorithm
+    double* p;
+    double* p_prev;
+
+    Condition* c;
+
 public: // actually private
 
     void compute_coordinates(int x_grid_n, int y_grid_n, int x_proc_n, int y_proc_n, int process_id);
     void initialize_constants(double X1, double X2, double Y1, double Y2, int x_grid_n, int y_grid_n);
+    void initialize_matrixes();
 };
 
 

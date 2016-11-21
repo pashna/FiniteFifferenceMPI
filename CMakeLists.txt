@@ -3,5 +3,5 @@ project(SuperComputing)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
-set(SOURCE_FILES main.cpp ProcessConfigurator.h FiniteDifference.cpp FiniteDifference.h)
+set(SOURCE_FILES main.cpp ProcessConfigurator.h FiniteDifference.cpp FiniteDifference.h Condition.h Var6Cond.h)
 add_executable(SuperComputing ${SOURCE_FILES})
