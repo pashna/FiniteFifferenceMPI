@@ -10,9 +10,9 @@ int main() {
     std::cout << processConfigurator.y_proc << " " << processConfigurator.x_proc << std::endl;
 
     Var6Cond cond;
-    FiniteDifference a(&cond, 100, 100, 4, 3, 0, 0, 1, 0, 1);
-    FiniteDifference a2(&cond, 100, 100, 4, 3, 4, 0, 1, 0, 1);
-    FiniteDifference a3(&cond, 100, 100, 4, 3, 8, 0, 1, 0, 1);
+    FiniteDifference a(&cond, 100, 100, 4, 3, 3, 0, 1, 0, 1);
+    FiniteDifference a2(&cond, 100, 100, 4, 3, 7, 0, 1, 0, 1);
+    FiniteDifference a3(&cond, 100, 100, 4, 3, 11, 0, 1, 0, 1);
 
 
     a.initialize_matrixes();
