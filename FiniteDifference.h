@@ -38,6 +38,7 @@ public: // actually private
 
     void compute_coordinates(int x_grid_n, int y_grid_n, int x_proc_n, int y_proc_n, int process_id);
     void initialize_constants(double X1, double X2, double Y1, double Y2, int x_grid_n, int y_grid_n);
+    double scalar_product(double* f1, double* f2);
     void initialize_matrixes();
 };
 

@@ -5,6 +5,8 @@
 #include <iostream>
 #include "FiniteDifference.h"
 #include "Var6Cond.h"
+#include <mpi.h>
+
 
 FiniteDifference::FiniteDifference(Condition *_c, int x_grid_n, int y_grid_n, int x_proc_n, int y_proc_n, int process_id,
                                    double X1, double X2, double Y1, double Y2) {
@@ -132,4 +134,29 @@ void FiniteDifference::initialize_matrixes() {
             //std::cout << x1 << ": " << y1 + hy * i << "\t" << index << std::endl;
         }
     }
+}
+
+
+double FiniteDifference::scalar_product(double *f1, double *f2) {
+    double s_one = 0;
+
+    // Start with y to avoid cache miss
+    for (int j=0; j<y_cell_n; j++)
+        for (int i=0; i<x_cell_n; i++)
+            s_one += hxhy * f1[j * x_cell_n + i] * f2[j * x_cell_n + i];
+
+    double s_all = 0;
+
+    // Summarize s from each nodes
+    MPI_Allreduce(
+            &s_one,            // const void *sendbuf,
+            &s_all,     // void *recvbuf,
+            1,                          // int count,
+            MPI_DOUBLE,                 // MPI_Datatype datatype,
+            MPI_SUM,                    // MPI_Op op,
+            procParams.comm             // MPI_Comm comm
+    );
+
+    return s_all;
+
 }
