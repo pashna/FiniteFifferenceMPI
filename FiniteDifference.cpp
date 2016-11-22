@@ -356,6 +356,53 @@ void FiniteDifference::initialize_matrixes() {
 
 }
 
+void FiniteDifference::compute_r() {
+    int index;
+    // biases
+    int t_ = (top) ? 1 : 0;
+    int b_ = (bottom) ? 1 : 0;
+    int r_ = (right) ? 1 : 0;
+    int l_ = (left) ? 1 : 0;
+
+    for (int j = t_; j < y_cell_n - b_; j++){
+        for (int i = l_; i < x_cell_n - r_; i++){
+            index = j * x_cell_n + i;
+            r[index] = delta_p[index] - c->F(x1 + i * hx, y2 + j * hy);
+        }
+    }
+}
+
+void FiniteDifference::compute_g(double a) {
+    int index;
+    // biases
+    int t_ = (top) ? 1 : 0;
+    int b_ = (bottom) ? 1 : 0;
+    int r_ = (right) ? 1 : 0;
+    int l_ = (left) ? 1 : 0;
+
+    for (int j = t_; j < y_cell_n - b_; j++){
+        for (int i = l_; i < x_cell_n - r_; i++){
+            index = j * x_cell_n + i;
+            g[index] = r[index] - a * g[index];
+        }
+    }
+}
+
+void FiniteDifference::compute_p(double t) {
+    int index;
+    // biases
+    int t_ = (top) ? 1 : 0;
+    int b_ = (bottom) ? 1 : 0;
+    int r_ = (right) ? 1 : 0;
+    int l_ = (left) ? 1 : 0;
+
+    for (int j = t_; j < y_cell_n - b_; j++){
+        for (int i = l_; i < x_cell_n - r_; i++){
+            index = j * x_cell_n + i;
+            p[index] = p_prev[index] - t * g[index];
+        }
+    }
+}
 
 double FiniteDifference::scalar_product(double *f1, double *f2) {
     double s_local = 0;

@@ -29,7 +29,7 @@ int main(int argc, char** argv) {
 
     } catch (std::exception& e) {
         std::cout << e.what();
-
+        std::cout << std::endl;
         MPI_Finalize();
         return 1;
     }

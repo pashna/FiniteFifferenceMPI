@@ -31,48 +31,50 @@ private:
     int process_id, x_proc_n, y_proc_n;
 
     // algorithm
-    double* p;
-    double* p_prev;
-    double* g;
-    double* r;
-    double* delta_p;
-    double* delta_g;
-    double* delta_r;
+    double *p, *p_prev, *delta_p;;
+    double *g, *delta_g;
+    double *r, *delta_r;
 
     Condition* c;
 
     // data to send and recieve
+    double *send_lr, *receive_lr;
+    double *send_rl, *receive_rl;
+    double *send_td, *receive_td;
+    double *send_bu, *receive_bu;
     MPI_Comm communicator;
-    double* send_lr;
-    double* receive_lr;
-    double* send_rl;
-    double* receive_rl;
-    double* send_td;
-    double* receive_td;
-    double* send_bu;
-    double* receive_bu;
 
 public: // actually private
 
+    // initialization phase
     void compute_coordinates(int x_grid_n, int y_grid_n, int x_proc_n, int y_proc_n, int process_id);
     void initialize_constants(double X1, double X2, double Y1, double Y2, int x_grid_n, int y_grid_n);
     void initialize_matrixes();
     void initialize_mpi_arrays();
-    double scalar_product(double* f1, double* f2);
+
+    // algorithm phase
     double max_norm();
+    void compute_r();
+    void compute_g(double alpha);
+    void compute_p(double t);
+
+
+    // tools
+    double scalar_product(double* f1, double* f2);
     double drand(double fMin, double fMax) {
         double f = (double)rand() / RAND_MAX;
         return fMin + f * (fMax - fMin);
     }
-    void solve(double eps);
 
-    // finite difference
+    // finite difference computation
     void finite_difference(double* f, double* df);
     void write_MPI_arrays(double *f);
     void exchange_MPI_arrays();
     void difference_equation(double *f, double *df);
     void difference_equation_for_border(double *f, double *df);
 
+public:
+    void solve(double eps);
 };
 
 
