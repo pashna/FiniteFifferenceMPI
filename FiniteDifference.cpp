@@ -6,6 +6,7 @@
 #include "FiniteDifference.h"
 #include "Var6Cond.h"
 #include <mpi.h>
+#include "math.h"
 
 
 FiniteDifference::FiniteDifference(Condition *_c, int x_grid_n, int y_grid_n, int x_proc_n, int y_proc_n, int process_id,
@@ -88,10 +89,15 @@ void FiniteDifference::compute_coordinates(int x_grid_n, int y_grid_n, int x_pro
 
 
 void FiniteDifference::initialize_matrixes() {
-    p = new double [x_cell_n * y_cell_n];
-    p_prev = new double [x_cell_n * y_cell_n];
+    int size = x_cell_n * y_cell_n;
+    p = new double [size];
+    p_prev = new double [size];
+    delta_p = new double [size];
+    g = new double [size];
+    delta_g = new double [size];
+    r = new double [size];
+    delta_r = new double [size];
 
-    // Borders should be initialized by zeros.
     double value;
     int index;
     if (top) {
@@ -100,6 +106,7 @@ void FiniteDifference::initialize_matrixes() {
             index = i;
             p_prev[index] = value;
             p[index] = value;
+            delta_p[index] = g[index] = delta_g[index] = r[index] = delta_r[index] = 0;
             //std::cout << x1 + i * hx << ": " << y1 << "\t" << index << std::endl;
 
         }
@@ -110,7 +117,8 @@ void FiniteDifference::initialize_matrixes() {
             index = x_cell_n*(i+1)-1;
             p_prev[index] = value;
             p[index] = value;
-            std::cout << x1 + (x_cell_n-1) * hx << ": " << y1 + hy * i << "\t" << index << std::endl;
+            delta_p[index] = g[index] = delta_g[index] = r[index] = delta_r[index] = 0;
+            //std::cout << x1 + (x_cell_n-1) * hx << ": " << y1 + hy * i << "\t" << index << std::endl;
 
         }
     }
@@ -120,6 +128,7 @@ void FiniteDifference::initialize_matrixes() {
             index = x_cell_n*(y_cell_n-1) + i;
             p_prev[index] = value;
             p[index] = value;
+            delta_p[index] = g[index] = delta_g[index] = r[index] = delta_r[index] = 0;
             //std::cout << x1 + i * hx << ": " << y2 << "\t" << index << std::endl;
         }
     }
@@ -131,32 +140,49 @@ void FiniteDifference::initialize_matrixes() {
             index = x_cell_n*i;
             p_prev[index] = value;
             p[index] = value;
+            delta_p[index] = g[index] = delta_g[index] = r[index] = delta_r[index] = 0;
             //std::cout << x1 << ": " << y1 + hy * i << "\t" << index << std::endl;
         }
     }
+
+
 }
 
 
 double FiniteDifference::scalar_product(double *f1, double *f2) {
-    double s_one = 0;
-
+    double s_local = 0;
+    int index;
     // Start with y to avoid cache miss
     for (int j=0; j<y_cell_n; j++)
-        for (int i=0; i<x_cell_n; i++)
-            s_one += hxhy * f1[j * x_cell_n + i] * f2[j * x_cell_n + i];
+        for (int i=0; i<x_cell_n; i++) {
+            index = j * x_cell_n + i;
+            s_local += hxhy * f1[index] * f2[index];
+        }
 
-    double s_all = 0;
+    double s_global = 0;
 
-    // Summarize s from each nodes
-    MPI_Allreduce(
-            &s_one,            // const void *sendbuf,
-            &s_all,     // void *recvbuf,
-            1,                          // int count,
-            MPI_DOUBLE,                 // MPI_Datatype datatype,
-            MPI_SUM,                    // MPI_Op op,
-            procParams.comm             // MPI_Comm comm
-    );
+    // Summarize s from each of nodes and send to each of nodes
+    MPI_Allreduce(&s_local, &s_global, 1, MPI_DOUBLE, MPI_SUM, procParams.comm);
 
-    return s_all;
+    return s_global;
 
+}
+
+
+double FiniteDifference::max_norm() {
+    double max_local = abs(p_prev[0]-p[0]);
+    double tmp;
+    int index;
+    for (int j=0; j<y_cell_n; j++)
+        for (int i=0; i<x_cell_n; i++) {
+            index = j * x_cell_n + i;
+            tmp = abs(p_prev[index] - p[index]);
+            if (tmp > max_local)
+                max_local = tmp;
+        }
+
+    double max_global;
+    // Find max
+    MPI_Allreduce(&max_local, &max_global, 1, MPI_DOUBLE, MPI_MAX, procParams.comm);
+    return max_global;
 }

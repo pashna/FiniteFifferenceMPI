@@ -31,6 +31,11 @@ private:
     // algorithm
     double* p;
     double* p_prev;
+    double* g;
+    double* r;
+    double* delta_p;
+    double* delta_g;
+    double* delta_r;
 
     Condition* c;
 
@@ -40,6 +45,9 @@ public: // actually private
     void initialize_constants(double X1, double X2, double Y1, double Y2, int x_grid_n, int y_grid_n);
     double scalar_product(double* f1, double* f2);
     void initialize_matrixes();
+    void difference_equation();
+
+    double max_norm();
 };
 
 
