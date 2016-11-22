@@ -6,12 +6,12 @@
 #define SUPERCOMPUTING_FINITEDIFFERENCE_H
 
 #include "Condition.h"
-
+#include "mpi.h"
 
 class FiniteDifference {
 public:
     FiniteDifference(Condition *_c, int x_grid_n, int y_grid_n, int x_proc_n_, int y_proc_n_, int process_id_,
-                     double X1, double X2, double Y1, double Y2);
+                     double X1, double X2, double Y1, double Y2, MPI_Comm communicator_);
 private:
     // coordinates for cell
     double x1, x2; // left and right border by x
@@ -42,6 +42,7 @@ private:
     Condition* c;
 
     // data to send and recieve
+    MPI_Comm communicator;
     double* send_lr;
     double* receive_lr;
     double* send_rl;

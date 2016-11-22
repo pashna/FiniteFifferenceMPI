@@ -5,20 +5,17 @@
 #include <iostream>
 #include "FiniteDifference.h"
 #include "Var6Cond.h"
-#include <mpi.h>
 #include "math.h"
 #include <random>
 
 FiniteDifference::FiniteDifference(Condition *_c, int x_grid_n, int y_grid_n, int x_proc_n_, int y_proc_n_, int process_id_,
-                                   double X1, double X2, double Y1, double Y2) {
+                                   double X1, double X2, double Y1, double Y2, MPI_Comm communicator_) {
     compute_coordinates(x_grid_n, y_grid_n, x_proc_n_, y_proc_n_, process_id_);
     initialize_constants(X1, X2, Y1, Y2, x_grid_n, y_grid_n);
     initialize_mpi_arrays();
     c = _c;
     process_id = process_id_;
-
-
-
+    communicator = communicator_;
 }
 
 void FiniteDifference::initialize_mpi_arrays() {
@@ -153,46 +150,46 @@ void FiniteDifference::exchange_MPI_arrays() {
     int ret;
 
     if (!right)
-        ret = MPI_Send(send_lr, y_cell_n, MPI_DOUBLE, process_id+1, 0, procParams.comm);
+        ret = MPI_Send(send_lr, y_cell_n, MPI_DOUBLE, process_id+1, 0, communicator);
     if (!left)
-        ret = MPI_Recv(receive_lr, y_cell_n, MPI_DOUBLE, process_id-1, 0, procParams.comm);
+        ret = MPI_Recv(receive_lr, y_cell_n, MPI_DOUBLE, process_id-1, 0, communicator, MPI_STATUS_IGNORE);
 
     // right -> left
     if (!left)
-        ret = MPI_Send(send_rl, y_cell_n, MPI_DOUBLE, process_id-1, 0, procParams.comm);
+        ret = MPI_Send(send_rl, y_cell_n, MPI_DOUBLE, process_id-1, 0, communicator);
     if (!right)
-        ret = MPI_Send(receive_rl, y_cell_n, MPI_DOUBLE, process_id+1, 0, procParams.comm);
+        ret = MPI_Recv(receive_rl, y_cell_n, MPI_DOUBLE, process_id+1, 0, communicator, MPI_STATUS_IGNORE);
 
     // bottom -> up
     if (!top)
-        ret = MPI_Send(send_td, x_cell_n, MPI_DOUBLE, process_id + x_proc_n, 0, procParams.comm);
+        ret = MPI_Send(send_td, x_cell_n, MPI_DOUBLE, process_id + x_proc_n, 0, communicator);
     if (!bottom)
-        ret = MPI_Recv(receive_td, x_cell_n, MPI_DOUBLE, process_id - x_proc_n, 0, procParams.comm);
+        ret = MPI_Recv(receive_td, x_cell_n, MPI_DOUBLE, process_id - x_proc_n, 0, communicator, MPI_STATUS_IGNORE);
 
     // up -> bottom
     if (!top)
-        ret = MPI_Send(send_bu, x_cell_n, MPI_DOUBLE, process_id - x_proc_n, 0, procParams.comm);
+        ret = MPI_Send(send_bu, x_cell_n, MPI_DOUBLE, process_id - x_proc_n, 0, communicator);
     if (!bottom)
-        ret = MPI_Recv(receive_bu, x_cell_n, MPI_DOUBLE, process_id + x_proc_n, 0, procParams.comm);
+        ret = MPI_Recv(receive_bu, x_cell_n, MPI_DOUBLE, process_id + x_proc_n, 0, communicator, MPI_STATUS_IGNORE);
 
 }
 
 void FiniteDifference::difference_equation(double *f, double *df) {
-    int cur;
-    int left;
-    int right;
-    int up;
-    int down;
+    int cur_idx;
+    int left_idx;
+    int right_idx;
+    int up_idx;
+    int down_idx;
     for (int j=1; j<y_cell_n-1; j++)
         for (int i=1; i<x_cell_n-1; i++) {
-            cur = j * x_cell_n + i;
-            left = cur-1;
-            right = cur+1;
-            up = (j - 1) * x_cell_n + i;
-            down = (j + 1) * x_cell_n + i;
+            cur_idx = j * x_cell_n + i;
+            left_idx = cur_idx-1;
+            right_idx = cur_idx+1;
+            up_idx = (j - 1) * x_cell_n + i;
+            down_idx = (j + 1) * x_cell_n + i;
 
-            df[cur] = (2*f[cur] - f[left] - f[right])/hx2 +
-                      (2*f[cur] - f[up] - f[down])/hy2;
+            df[cur_idx] = (2*f[cur_idx] - f[left_idx] - f[right_idx])/hx2 +
+                      (2*f[cur_idx] - f[up_idx] - f[down_idx])/hy2;
         }
 }
 
@@ -373,7 +370,7 @@ double FiniteDifference::scalar_product(double *f1, double *f2) {
     double s_global = 0;
 
     // Summarize s from each of nodes and send to each of nodes
-    MPI_Allreduce(&s_local, &s_global, 1, MPI_DOUBLE, MPI_SUM, procParams.comm);
+    MPI_Allreduce(&s_local, &s_global, 1, MPI_DOUBLE, MPI_SUM, communicator);
 
     return s_global;
 
@@ -394,6 +391,6 @@ double FiniteDifference::max_norm() {
 
     double max_global;
     // Find max
-    MPI_Allreduce(&max_local, &max_global, 1, MPI_DOUBLE, MPI_MAX, procParams.comm);
+    MPI_Allreduce(&max_local, &max_global, 1, MPI_DOUBLE, MPI_MAX, communicator);
     return max_global;
 }
