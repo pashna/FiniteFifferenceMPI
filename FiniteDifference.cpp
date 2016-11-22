@@ -7,14 +7,221 @@
 #include "Var6Cond.h"
 #include <mpi.h>
 #include "math.h"
+#include <random>
 
-
-FiniteDifference::FiniteDifference(Condition *_c, int x_grid_n, int y_grid_n, int x_proc_n, int y_proc_n, int process_id,
+FiniteDifference::FiniteDifference(Condition *_c, int x_grid_n, int y_grid_n, int x_proc_n_, int y_proc_n_, int process_id_,
                                    double X1, double X2, double Y1, double Y2) {
-    compute_coordinates(x_grid_n, y_grid_n, x_proc_n, y_proc_n, process_id);
+    compute_coordinates(x_grid_n, y_grid_n, x_proc_n_, y_proc_n_, process_id_);
     initialize_constants(X1, X2, Y1, Y2, x_grid_n, y_grid_n);
-    std::cout << "\n\n";
+    initialize_mpi_arrays();
     c = _c;
+    process_id = process_id_;
+
+
+
+}
+
+void FiniteDifference::initialize_mpi_arrays() {
+        send_lr = new double [y_cell_n];
+        receive_lr = new double [y_cell_n];
+
+        send_rl = new double [y_cell_n];
+        receive_rl = new double [y_cell_n];
+
+        send_td = new double [x_cell_n];
+        receive_td = new double [x_cell_n];
+
+        send_bu = new double [x_cell_n];
+        receive_bu = new double [x_cell_n];
+}
+
+void FiniteDifference::solve(double eps) {
+    initialize_matrixes();
+
+    do {
+
+    } while (max_norm() >= eps);
+}
+
+void FiniteDifference::finite_difference(double *f, double *df) {
+    // calculate difference equation for each inner node
+    difference_equation(f, df);
+    write_MPI_arrays(f);
+    exchange_MPI_arrays();
+    difference_equation_for_border(f, df);
+}
+
+void FiniteDifference::difference_equation_for_border(double *f, double *df) {
+    int cur_idx;
+    int left_idx;
+    int right_idx;
+    int up_idx;
+    int down_idx;
+
+    // left->right
+    int i=0;
+    int j=0;
+    if (!left) {
+        for (j = 1; j < y_cell_n - 1; j++) {
+            cur_idx = j * x_cell_n + i;
+            left_idx = cur_idx-1;
+            right_idx = cur_idx+1;
+            up_idx = (j - 1) * x_cell_n + i;
+            down_idx = (j + 1) * x_cell_n + i;
+
+            df[cur_idx] = (2*f[cur_idx] - receive_lr[j] - f[right_idx])/hx2 +
+                       (2*f[cur_idx] - f[up_idx] - f[down_idx])/hy2;
+        }
+    }
+    if (!top & !left) {
+        df[0] = (2*f[0] - receive_lr[0] - f[1])/hx2 +
+                (2*f[0] - receive_td[0] - f[x_cell_n])/hy2;
+    }
+
+
+    // right->left
+    i=x_cell_n-1;;
+    j=0;
+    if (!right) {
+        for (j = 1; j < y_cell_n - 1; j++) {
+            cur_idx = j * x_cell_n + i;
+            left_idx = cur_idx-1;
+            right_idx = cur_idx+1;
+            up_idx = (j - 1) * x_cell_n + i;
+            down_idx = (j + 1) * x_cell_n + i;
+
+            df[cur_idx] = (2*f[cur_idx] - f[left_idx]- receive_rl[j])/hx2 +
+                          (2*f[cur_idx] - f[up_idx] - f[down_idx])/hy2;
+        }
+    }
+    if (!top & !right) {
+        df[x_cell_n-1] = (2*f[x_cell_n-1] - f[x_cell_n-2] - receive_rl[0] )/hx2 +
+                         (2*f[x_cell_n-1] - receive_td[x_cell_n-1] - f[2*x_cell_n-1])/hy2;
+    }
+
+
+    // top -> down
+    i=0;
+    j=0;
+    if (!top) {
+        for (i = 1; i < x_cell_n - 1; i++) {
+            cur_idx = j * x_cell_n + i;
+            left_idx = cur_idx-1;
+            right_idx = cur_idx+1;
+            up_idx = (j - 1) * x_cell_n + i;
+            down_idx = (j + 1) * x_cell_n + i;
+
+            df[cur_idx] = (2*f[cur_idx] - f[left_idx] - f[right_idx])/hx2 +
+                          (2*f[cur_idx] - f[up_idx] - receive_td[i])/hy2;
+        }
+    }
+    if (!bottom & !left){
+        df[(y_cell_n) * (x_cell_n-1)] = (2*f[(y_cell_n) * (x_cell_n-1)] - receive_lr[y_cell_n -1] - receive_rl[(y_cell_n) * (x_cell_n-1) + 1] )/hx2 +
+                                        (2*f[(y_cell_n) * (x_cell_n-1)] - f[(y_cell_n) * (x_cell_n-2)] - receive_bu[0])/hy2;
+    }
+
+
+    // down -> top
+    i=0;
+    j=y_cell_n -1;
+    if (!bottom) {
+        for (i = 1; i < x_cell_n - 1; i++) {
+            cur_idx = j * x_cell_n + i;
+            left_idx = cur_idx-1;
+            right_idx = cur_idx+1;
+            up_idx = (j - 1) * x_cell_n + i;
+            down_idx = (j + 1) * x_cell_n + i;
+
+            df[cur_idx] = (2*f[cur_idx] - f[left_idx] - f[right_idx])/hx2 +
+                          (2*f[cur_idx] - receive_bu[i] - f[down_idx])/hy2;
+        }
+    }
+    if (!bottom & !right){
+        cur_idx = y_cell_n * x_cell_n - 1 ;
+        df[cur_idx] = (2*f[cur_idx] - receive_lr[cur_idx - 1] - receive_rl[y_cell_n -1] )/hx2 +
+                      (2*f[cur_idx] - f[cur_idx - x_cell_n] - receive_bu[0])/hy2;
+    }
+
+
+}
+
+void FiniteDifference::exchange_MPI_arrays() {
+    /*
+     * TODO: TAGS!
+     */
+    //left -> right
+    int ret;
+
+    if (!right)
+        ret = MPI_Send(send_lr, y_cell_n, MPI_DOUBLE, process_id+1, 0, procParams.comm);
+    if (!left)
+        ret = MPI_Recv(receive_lr, y_cell_n, MPI_DOUBLE, process_id-1, 0, procParams.comm);
+
+    // right -> left
+    if (!left)
+        ret = MPI_Send(send_rl, y_cell_n, MPI_DOUBLE, process_id-1, 0, procParams.comm);
+    if (!right)
+        ret = MPI_Send(receive_rl, y_cell_n, MPI_DOUBLE, process_id+1, 0, procParams.comm);
+
+    // bottom -> up
+    if (!top)
+        ret = MPI_Send(send_td, x_cell_n, MPI_DOUBLE, process_id + x_proc_n, 0, procParams.comm);
+    if (!bottom)
+        ret = MPI_Recv(receive_td, x_cell_n, MPI_DOUBLE, process_id - x_proc_n, 0, procParams.comm);
+
+    // up -> bottom
+    if (!top)
+        ret = MPI_Send(send_bu, x_cell_n, MPI_DOUBLE, process_id - x_proc_n, 0, procParams.comm);
+    if (!bottom)
+        ret = MPI_Recv(receive_bu, x_cell_n, MPI_DOUBLE, process_id + x_proc_n, 0, procParams.comm);
+
+}
+
+void FiniteDifference::difference_equation(double *f, double *df) {
+    int cur;
+    int left;
+    int right;
+    int up;
+    int down;
+    for (int j=1; j<y_cell_n-1; j++)
+        for (int i=1; i<x_cell_n-1; i++) {
+            cur = j * x_cell_n + i;
+            left = cur-1;
+            right = cur+1;
+            up = (j - 1) * x_cell_n + i;
+            down = (j + 1) * x_cell_n + i;
+
+            df[cur] = (2*f[cur] - f[left] - f[right])/hx2 +
+                      (2*f[cur] - f[up] - f[down])/hy2;
+        }
+}
+
+void FiniteDifference::write_MPI_arrays(double *f) {
+    // bottom -> up
+    int index;
+    for(int i=0; i<x_cell_n; i++) {
+        index = i;
+        send_bu[i] = f[index];
+    }
+
+    // left->right
+    for(int i=0; i<y_cell_n; i++) {
+        index = x_cell_n * (i + 1) - 1;
+        send_lr[i] = f[index];
+    }
+
+    // top->bottom
+    for(int i=0; i<x_cell_n; i++) {
+        index = x_cell_n * (y_cell_n - 1) + i;
+        send_td[i] = f[index];
+    }
+
+    // right->left
+    for(int i=0; i<y_cell_n; i++) {
+        index = x_cell_n * i;
+        send_rl[i] = f[index];
+    }
+
 
 }
 
@@ -100,10 +307,16 @@ void FiniteDifference::initialize_matrixes() {
 
     double value;
     int index;
+
+    for (int j=0; j<y_cell_n; j++)
+        for (int i=0; i<x_cell_n; i++)
+            p_prev[j * x_cell_n + i] = drand(-100, 100);
+
+
     if (top) {
         for(int i=0; i<x_cell_n; i++) {
-            value = c->fi(x1 + i * hx, y1);
             index = i;
+            value = c->fi(x1 + i * hx, y1);
             p_prev[index] = value;
             p[index] = value;
             delta_p[index] = g[index] = delta_g[index] = r[index] = delta_r[index] = 0;
@@ -113,8 +326,8 @@ void FiniteDifference::initialize_matrixes() {
     }
     if (right) {
         for(int i=0; i<y_cell_n; i++) {
-            value = c->fi(x1 + (x_cell_n-1) * hx, y1 + hy * i);
             index = x_cell_n*(i+1)-1;
+            value = c->fi(x1 + (x_cell_n-1) * hx, y1 + hy * i);
             p_prev[index] = value;
             p[index] = value;
             delta_p[index] = g[index] = delta_g[index] = r[index] = delta_r[index] = 0;
@@ -124,8 +337,8 @@ void FiniteDifference::initialize_matrixes() {
     }
     if (bottom) {
         for(int i=0; i<x_cell_n; i++) {
-            value = c->fi(x1 + i * hx, y2);
             index = x_cell_n*(y_cell_n-1) + i;
+            value = c->fi(x1 + i * hx, y2);
             p_prev[index] = value;
             p[index] = value;
             delta_p[index] = g[index] = delta_g[index] = r[index] = delta_r[index] = 0;
@@ -134,10 +347,8 @@ void FiniteDifference::initialize_matrixes() {
     }
     if (left) {
         for(int i=0; i<y_cell_n; i++) {
-            //std::cout << x1 << ": " << y1 + hy * i << std::endl;
-
-            value = c->fi(x1, y1 + hy * i);
             index = x_cell_n*i;
+            value = c->fi(x1, y1 + hy * i);
             p_prev[index] = value;
             p[index] = value;
             delta_p[index] = g[index] = delta_g[index] = r[index] = delta_r[index] = 0;
