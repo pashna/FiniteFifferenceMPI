@@ -455,13 +455,13 @@ double FiniteDifference::scalar_product(double *f1, double *f2) {
 
 
 double FiniteDifference::max_norm() {
-    double max_local = abs(p_prev[0]-p[0]);
+    double max_local = fabs(p_prev[0]-p[0]);
     double tmp;
     int index;
     for (int j=0; j<y_cell_n; j++)
         for (int i=0; i<x_cell_n; i++) {
             index = j * x_cell_n + i;
-            tmp = abs(p_prev[index] - p[index]);
+            tmp = fabs(p_prev[index] - p[index]);
             if (tmp > max_local)
                 max_local = tmp;
         }

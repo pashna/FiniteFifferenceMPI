@@ -7,6 +7,7 @@
 
 #include "Condition.h"
 #include "mpi.h"
+#include <random>
 
 class FiniteDifference {
 public:
