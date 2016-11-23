@@ -34,10 +34,41 @@ void FiniteDifference::initialize_mpi_arrays() {
 
 void FiniteDifference::solve(double eps) {
     initialize_matrixes();
+    double scalar_product_delta_g_and_g = 1;
+    double scalar_product_delta_r_and_g = 1;
+    double scalar_product_r_and_g = 1;
+    double alpha = 0;
+    double tau = 0;
+    double norm;
 
-    do {
+    // first iteration
+    finite_difference(delta_p, p_prev);
+    compute_r();
+    std::swap(g, r);
+    finite_difference(delta_g, g);
+    scalar_product_r_and_g = scalar_product(g, g);
+    scalar_product_delta_g_and_g = scalar_product(delta_g, g);
+    tau = scalar_product_r_and_g / scalar_product_delta_g_and_g;
+    compute_p (tau);
+    norm = max_norm();
+    while(norm >= eps) {
+        std::swap(p, p_prev);
+        // each row is a step of the algorithm
+        finite_difference(delta_p, p_prev);
+        compute_r();
+        finite_difference(delta_r, r);
+        finite_difference(delta_r, r);
+        scalar_product_delta_r_and_g = scalar_product(delta_r, g);
+        alpha = scalar_product_delta_r_and_g / scalar_product_delta_g_and_g;
+        compute_g (alpha);
+        finite_difference(delta_g, g);
+        scalar_product_r_and_g = scalar_product(r, g);
+        scalar_product_delta_g_and_g = scalar_product(delta_g, g);
+        tau = scalar_product_r_and_g / scalar_product_delta_g_and_g;
+        compute_p (tau);
+        norm = max_norm();
 
-    } while (max_norm() >= eps);
+    } ;
 }
 
 void FiniteDifference::finite_difference(double *f, double *df) {
@@ -253,7 +284,6 @@ void FiniteDifference::compute_coordinates(int x_grid_n, int y_grid_n, int x_pro
         // the process is charged for (x_cells_n+1)  cells
         x_cell_n += 1;
         x_cell_start += (process_id % x_proc_n - (x_proc_n - x_proc_last_n)); // + offset
-
     }
 
     y_cell_start = process_id / x_proc_n * y_cell_n;
