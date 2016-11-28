@@ -6,7 +6,7 @@
 #include "FiniteDifference.h"
 #include "Var6Cond.h"
 #include "math.h"
-#include <random>
+//#include <random>
 
 FiniteDifference::FiniteDifference(Condition *_c, int x_grid_n, int y_grid_n, int x_proc_n_, int y_proc_n_, int process_id_,
                                    double X1, double X2, double Y1, double Y2, MPI_Comm communicator_) {
@@ -34,11 +34,11 @@ void FiniteDifference::initialize_mpi_arrays() {
 
 void FiniteDifference::solve(double eps) {
     initialize_matrixes();
-    double scalar_product_delta_g_and_g = 1;
-    double scalar_product_delta_r_and_g = 1;
-    double scalar_product_r_and_g = 1;
-    double alpha = 0;
-    double tau = 0;
+    double scalar_dg_g = 1;
+    double scalar_dr_g = 1;
+    double scalar_r_g = 1;
+    double a = 0;
+    double t = 0;
     double norm;
 
     // first iteration
@@ -46,28 +46,29 @@ void FiniteDifference::solve(double eps) {
     compute_r();
     std::swap(g, r);
     finite_difference(delta_g, g);
-    scalar_product_r_and_g = scalar_product(g, g);
-    scalar_product_delta_g_and_g = scalar_product(delta_g, g);
-    tau = scalar_product_r_and_g / scalar_product_delta_g_and_g;
-    compute_p (tau);
+    scalar_r_g = scalar_product(g, g);
+    scalar_dg_g = scalar_product(delta_g, g);
+    t = scalar_r_g / scalar_dg_g;
+    compute_p (t);
     norm = max_norm();
     while(norm >= eps) {
         std::swap(p, p_prev);
         // each row is a step of the algorithm
         finite_difference(delta_p, p_prev);
         compute_r();
+        finite_difference(r, delta_p);
         finite_difference(delta_r, r);
-        finite_difference(delta_r, r);
-        scalar_product_delta_r_and_g = scalar_product(delta_r, g);
-        alpha = scalar_product_delta_r_and_g / scalar_product_delta_g_and_g;
-        compute_g (alpha);
+        scalar_dr_g = scalar_product(delta_r, g);
+        a = scalar_dr_g / scalar_dg_g;
+        compute_g(a);
         finite_difference(delta_g, g);
-        scalar_product_r_and_g = scalar_product(r, g);
-        scalar_product_delta_g_and_g = scalar_product(delta_g, g);
-        tau = scalar_product_r_and_g / scalar_product_delta_g_and_g;
-        compute_p (tau);
+        scalar_r_g = scalar_product(r, g);
+        scalar_dg_g = scalar_product(delta_g, g);
+        t = scalar_r_g / scalar_dg_g;
+        compute_p (t);
         norm = max_norm();
-
+        if (process_id == 0)
+            std::cout << "Norm=" << norm << std::endl;
     } ;
 }
 

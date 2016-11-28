@@ -7,7 +7,7 @@
 
 #include "Condition.h"
 #include "mpi.h"
-#include <random>
+//#include <random>
 
 class FiniteDifference {
 public:
@@ -63,8 +63,9 @@ public: // actually private
     // tools
     double scalar_product(double* f1, double* f2);
     double drand(double fMin, double fMax) {
-        double f = (double)rand() / RAND_MAX;
-        return fMin + f * (fMax - fMin);
+        //double f = (double)std::rand() / RAND_MAX;
+        //return fMin + f * (fMax - fMin);
+        return 0;
     }
 
     // finite difference computation
