@@ -265,7 +265,7 @@ void FiniteDifference::initialize_constants(double X1, double X2, double Y1, dou
     y1 = y_cell_start * hy;
     y2 = (y_cell_start + y_cell_n - 1) * hy;
 
-    std::cout << "y:(" << y1 << "; " << y2 << ")  x:(" << x1 << "; " << x2 << ")";
+    //std::cout << "y:(" << y1 << "; " << y2 << ")  x:(" << x1 << "; " << x2 << ")";
 
 }
 
@@ -314,10 +314,10 @@ void FiniteDifference::compute_coordinates(int x_grid_n, int y_grid_n, int x_pro
     else
         bottom = false;
 
-    std::cout << process_id << std::endl;
-    std::cout << "x_start="<<x_cell_start<<"; x_cell_n=" << x_cell_n << "\n";
-    std::cout << "y_start="<<y_cell_start<<"; y_cell_n=" << y_cell_n << "\n";
-    std::cout << "t="<<top << " r=" << right << " b=" << bottom << " l=" << left << "\n";
+    //std::cout << process_id << std::endl;
+    //std::cout << "x_start="<<x_cell_start<<"; x_cell_n=" << x_cell_n << "\n";
+    //std::cout << "y_start="<<y_cell_start<<"; y_cell_n=" << y_cell_n << "\n";
+    //std::cout << "t="<<top << " r=" << right << " b=" << bottom << " l=" << left << "\n";
 }
 
 

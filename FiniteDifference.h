@@ -18,12 +18,13 @@ public:
     int iter = 0;
     double *p;
     double norm;
-
-private:
+    double hx, hy; // step x, step y;
     // coordinates for cell
     double x1, x2; // left and right border by x
     double y1, y2; // top and bottom border by y
-    double hx, hy; // step x, step y;
+
+private:
+
 
     // useful constants
     double hxhy, hx2, hy2;

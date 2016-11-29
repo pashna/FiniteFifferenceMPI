@@ -50,7 +50,9 @@ int main(int argc, char** argv) {
         }
 
         ResultWritter resultWritter(grid_n, process_n, process_id);
-        resultWritter.write_result(finiteDifference.p, finiteDifference.x_cell_n, finiteDifference.y_cell_n);
+        resultWritter.write_result(finiteDifference.p, finiteDifference.x_cell_n, finiteDifference.y_cell_n,
+                                   finiteDifference.x1, finiteDifference.hx,
+                                   finiteDifference.y1, finiteDifference.hy);
 
     } catch (std::exception& e) {
         std::cout << e.what();
