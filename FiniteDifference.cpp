@@ -224,17 +224,21 @@ void FiniteDifference::difference_equation(double *f, double *df) {
     int right_idx;
     int up_idx;
     int down_idx;
-    for (int j=1; j<y_cell_n-1; j++)
-        for (int i=1; i<x_cell_n-1; i++) {
+
+    #pragma omp parallel
+    #pragma omp for schedule (static)
+    for (int j = 1; j < y_cell_n - 1; j++)
+        for (int i = 1; i < x_cell_n - 1; i++) {
             cur_idx = j * x_cell_n + i;
-            left_idx = cur_idx-1;
-            right_idx = cur_idx+1;
+            left_idx = cur_idx - 1;
+            right_idx = cur_idx + 1;
             up_idx = (j - 1) * x_cell_n + i;
             down_idx = (j + 1) * x_cell_n + i;
 
-            df[cur_idx] = (2*f[cur_idx] - f[left_idx] - f[right_idx])/hx2 +
-                      (2*f[cur_idx] - f[up_idx] - f[down_idx])/hy2;
+            df[cur_idx] = (2 * f[cur_idx] - f[left_idx] - f[right_idx]) / hx2 +
+                          (2 * f[cur_idx] - f[up_idx] - f[down_idx]) / hy2;
         }
+
 }
 
 void FiniteDifference::write_MPI_arrays(double *f) {
@@ -450,9 +454,11 @@ void FiniteDifference::compute_p(double t) {
 double FiniteDifference::scalar_product(double *f1, double *f2) {
     double s_local = 0;
     int index;
+    #pragma omp parallel
+    #pragma omp for schedule(static) reduction(+:s_local)
     // Start with y to avoid cache miss
-    for (int j=0; j<y_cell_n; j++)
-        for (int i=0; i<x_cell_n; i++) {
+    for (int j = 0; j < y_cell_n; j++)
+        for (int i = 0; i < x_cell_n; i++) {
             index = j * x_cell_n + i;
             s_local += hxhy * f1[index] * f2[index];
         }
