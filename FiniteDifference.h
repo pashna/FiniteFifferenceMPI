@@ -15,7 +15,10 @@ public:
                      double X1, double X2, double Y1, double Y2, MPI_Comm communicator_);
 
     int x_cell_n, y_cell_n;
+    int iter = 0;
     double *p;
+    double norm;
+
 private:
     // coordinates for cell
     double x1, x2; // left and right border by x

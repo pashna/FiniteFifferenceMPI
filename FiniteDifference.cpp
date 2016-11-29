@@ -39,7 +39,6 @@ void FiniteDifference::solve(double eps) {
     double scalar_r_g = 1;
     double a = 0;
     double t = 0;
-    double norm;
 
     // first iteration
     finite_difference(delta_p, p_prev);
@@ -67,8 +66,7 @@ void FiniteDifference::solve(double eps) {
         t = scalar_r_g / scalar_dg_g;
         compute_p (t);
         norm = max_norm();
-        if (process_id == 0)
-            std::cout << "Norm=" << norm << std::endl;
+        iter++;
     } ;
 }
 

@@ -4,11 +4,13 @@
 #include "Var6Cond.h"
 #include <mpi.h>
 #include "ResultWritter.h"
+#include <sys/time.h>
 
 
 
 int main(int argc, char** argv) {
 
+    int grid_n =  atoi(argv[1]);
     MPI_Init(&argc,&argv);
     Var6Cond cond;
 
@@ -24,11 +26,30 @@ int main(int argc, char** argv) {
         proc_config.compute_process_split(process_n);
 
         // Todo: move all soecific for the task params to cond and use cond as parameter for solve()
-        FiniteDifference finiteDifference(&cond, 1000, 1000, proc_config.x_proc, proc_config.y_proc,
+        FiniteDifference finiteDifference(&cond, grid_n, grid_n, proc_config.x_proc, proc_config.y_proc,
                                           process_id, 0, 1, 0, 1, communicator);
+
+        struct timeval tp;
+        long int start_time = tp.tv_sec * 1000 + tp.tv_usec / 1000;
+
+        if (process_id == 0) {
+            gettimeofday(&tp, NULL);
+        }
+
         finiteDifference.solve(0.0001);
 
-        ResultWritter resultWritter(1000, process_n, process_id);
+        if (process_id == 0) {
+            long int finish_time = tp.tv_sec * 1000 + tp.tv_usec / 1000;
+            long int time = finish_time - start_time;
+            std::cout << "=============\n";
+            std::cout << "processes: " << process_n << "\n";
+            std::cout << "grid: " << grid_n << "\n";
+            std::cout << "time: " << time << "ms.\n";
+            std::cout << "max_norm: " << finiteDifference.norm << "\n";
+            std::cout << "iterations: " << finiteDifference.iter << "\n";
+        }
+
+        ResultWritter resultWritter(grid_n, process_n, process_id);
         resultWritter.write_result(finiteDifference.p, finiteDifference.x_cell_n, finiteDifference.y_cell_n);
 
     } catch (std::exception& e) {
