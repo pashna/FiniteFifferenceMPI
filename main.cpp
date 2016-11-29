@@ -3,6 +3,7 @@
 #include "FiniteDifference.h"
 #include "Var6Cond.h"
 #include <mpi.h>
+#include "ResultWritter.h"
 
 
 
@@ -26,6 +27,9 @@ int main(int argc, char** argv) {
         FiniteDifference finiteDifference(&cond, 1000, 1000, proc_config.x_proc, proc_config.y_proc,
                                           process_id, 0, 1, 0, 1, communicator);
         finiteDifference.solve(0.0001);
+
+        ResultWritter resultWritter(1000, process_n, process_id);
+        resultWritter.write_result(finiteDifference.p, finiteDifference.x_cell_n, finiteDifference.y_cell_n);
 
     } catch (std::exception& e) {
         std::cout << e.what();

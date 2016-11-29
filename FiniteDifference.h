@@ -13,6 +13,9 @@ class FiniteDifference {
 public:
     FiniteDifference(Condition *_c, int x_grid_n, int y_grid_n, int x_proc_n_, int y_proc_n_, int process_id_,
                      double X1, double X2, double Y1, double Y2, MPI_Comm communicator_);
+
+    int x_cell_n, y_cell_n;
+    double *p;
 private:
     // coordinates for cell
     double x1, x2; // left and right border by x
@@ -24,7 +27,6 @@ private:
 
     // cell coordinated
     int x_cell_start, y_cell_start;
-    int x_cell_n, y_cell_n;
 
     // border indicators
     bool left, right, top, bottom;
@@ -32,7 +34,7 @@ private:
     int process_id, x_proc_n, y_proc_n;
 
     // algorithm
-    double *p, *p_prev, *delta_p;;
+    double *p_prev, *delta_p;;
     double *g, *delta_g;
     double *r, *delta_r;
 
