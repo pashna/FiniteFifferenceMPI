@@ -179,28 +179,42 @@ void FiniteDifference::exchange_MPI_arrays() {
     //left -> right
     int ret;
 
-    if (!right)
-        ret = MPI_Send(send_lr, y_cell_n, MPI_DOUBLE, process_id+1, 0, communicator);
-    if (!left)
-        ret = MPI_Recv(receive_lr, y_cell_n, MPI_DOUBLE, process_id-1, 0, communicator, MPI_STATUS_IGNORE);
-
+    if (!right) {
+        ret = MPI_Send(send_lr, y_cell_n, MPI_DOUBLE, process_id + 1, 0, communicator);
+        if (ret != MPI_SUCCESS) throw 5;
+    }
+    if (!left) {
+        ret = MPI_Recv(receive_lr, y_cell_n, MPI_DOUBLE, process_id - 1, 0, communicator, MPI_STATUS_IGNORE);
+        if (ret != MPI_SUCCESS) throw 5;
+    }
     // right -> left
-    if (!left)
-        ret = MPI_Send(send_rl, y_cell_n, MPI_DOUBLE, process_id-1, 0, communicator);
-    if (!right)
-        ret = MPI_Recv(receive_rl, y_cell_n, MPI_DOUBLE, process_id+1, 0, communicator, MPI_STATUS_IGNORE);
-
+    if (!left) {
+        ret = MPI_Send(send_rl, y_cell_n, MPI_DOUBLE, process_id - 1, 0, communicator);
+        if (ret != MPI_SUCCESS) throw 5;
+    }
+    if (!right) {
+       ret = MPI_Recv(receive_rl, y_cell_n, MPI_DOUBLE, process_id + 1, 0, communicator, MPI_STATUS_IGNORE);
+        if (ret != MPI_SUCCESS) throw 5;
+    }
     // bottom -> up
-    if (!top)
+    if (!top) {
         ret = MPI_Send(send_td, x_cell_n, MPI_DOUBLE, process_id + x_proc_n, 0, communicator);
-    if (!bottom)
+        if (ret != MPI_SUCCESS) throw 5;
+    }
+    if (!bottom) {
         ret = MPI_Recv(receive_td, x_cell_n, MPI_DOUBLE, process_id - x_proc_n, 0, communicator, MPI_STATUS_IGNORE);
+        if (ret != MPI_SUCCESS) throw 5;
+    }
 
     // up -> bottom
-    if (!top)
+    if (!top) {
         ret = MPI_Send(send_bu, x_cell_n, MPI_DOUBLE, process_id - x_proc_n, 0, communicator);
-    if (!bottom)
+        if (ret != MPI_SUCCESS) throw 5;
+    }
+    if (!bottom) {
         ret = MPI_Recv(receive_bu, x_cell_n, MPI_DOUBLE, process_id + x_proc_n, 0, communicator, MPI_STATUS_IGNORE);
+        if (ret != MPI_SUCCESS) throw 5;
+    }
 
 }
 
