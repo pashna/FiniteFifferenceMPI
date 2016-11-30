@@ -9,6 +9,7 @@
 #include <iostream>
 #include <string>
 #include <fstream>
+#include <sstream>
 
 
 
@@ -19,6 +20,12 @@ public:
 
 private:
     std::string filename;
+    std::string number_to_string ( int number )
+    {
+        std::stringstream ss;
+        ss << number;
+        return ss.str();
+    }
 };
 
 

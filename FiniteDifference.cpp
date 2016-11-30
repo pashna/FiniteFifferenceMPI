@@ -282,7 +282,7 @@ void FiniteDifference::initialize_constants(double X1, double X2, double Y1, dou
 
     y1 = y_cell_start * hy;
     y2 = (y_cell_start + y_cell_n - 1) * hy;
-
+    iter = 0;
     //std::cout << "y:(" << y1 << "; " << y2 << ")  x:(" << x1 << "; " << x2 << ")";
 
 }
@@ -411,6 +411,8 @@ void FiniteDifference::compute_r() {
     int r_ = (right) ? 1 : 0;
     int l_ = (left) ? 1 : 0;
 
+    #pragma omp parallel
+    #pragma omp for schedule (static)
     for (int j = t_; j < y_cell_n - b_; j++){
         for (int i = l_; i < x_cell_n - r_; i++){
             index = j * x_cell_n + i;
@@ -426,7 +428,8 @@ void FiniteDifference::compute_g(double a) {
     int b_ = (bottom) ? 1 : 0;
     int r_ = (right) ? 1 : 0;
     int l_ = (left) ? 1 : 0;
-
+    #pragma omp parallel
+    #pragma omp for schedule (static)
     for (int j = t_; j < y_cell_n - b_; j++){
         for (int i = l_; i < x_cell_n - r_; i++){
             index = j * x_cell_n + i;
@@ -443,6 +446,8 @@ void FiniteDifference::compute_p(double t) {
     int r_ = (right) ? 1 : 0;
     int l_ = (left) ? 1 : 0;
 
+    #pragma omp parallel
+    #pragma omp for schedule (static)
     for (int j = t_; j < y_cell_n - b_; j++){
         for (int i = l_; i < x_cell_n - r_; i++){
             index = j * x_cell_n + i;

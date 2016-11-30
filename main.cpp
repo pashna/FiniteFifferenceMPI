@@ -30,6 +30,7 @@ int main(int argc, char** argv) {
                                           process_id, 0, 1, 0, 1, communicator);
 
         struct timeval tp;
+        gettimeofday(&tp, NULL);
         long int start_time = tp.tv_sec * 1000 + tp.tv_usec / 1000;
 
         if (process_id == 0) {

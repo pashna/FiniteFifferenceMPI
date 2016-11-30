@@ -16,7 +16,7 @@ public:
                      double X1, double X2, double Y1, double Y2, MPI_Comm communicator_);
 
     int x_cell_n, y_cell_n;
-    int iter = 0;
+    int iter;
     double *p;
     double norm;
     double hx, hy; // step x, step y;
