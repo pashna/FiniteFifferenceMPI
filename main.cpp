@@ -27,7 +27,7 @@ int main(int argc, char** argv) {
 
         // Todo: move all soecific for the task params to cond and use cond as parameter for solve()
         FiniteDifference finiteDifference(&cond, grid_n, grid_n, proc_config.x_proc, proc_config.y_proc,
-                                          process_id, 0, 1, 0, 1, communicator);
+                                          process_id, 0, 2, 0, 2, communicator);
 
         struct timeval tp;
         gettimeofday(&tp, NULL);
