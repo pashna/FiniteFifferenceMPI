@@ -30,8 +30,7 @@ public:
     double x1, x2; // left and right border by x
     double y1, y2; // top and bottom border by y
 
-    MPI_Request* recv_reqs_diff;
-    MPI_Request* send_reqs_diff;
+    MPI_Request* reqs_diff;
 
 private:
 
