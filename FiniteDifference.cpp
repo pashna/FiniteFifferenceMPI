@@ -19,17 +19,21 @@ FiniteDifference::FiniteDifference(Condition *_c, int x_grid_n, int y_grid_n, in
 }
 
 void FiniteDifference::initialize_mpi_arrays() {
-        send_lr = new double [y_cell_n];
-        receive_lr = new double [y_cell_n];
+    send_lr = new double [y_cell_n];
+    receive_lr = new double [y_cell_n];
 
-        send_rl = new double [y_cell_n];
-        receive_rl = new double [y_cell_n];
+    send_rl = new double [y_cell_n];
+    receive_rl = new double [y_cell_n];
 
-        send_td = new double [x_cell_n];
-        receive_td = new double [x_cell_n];
+    send_td = new double [x_cell_n];
+    receive_td = new double [x_cell_n];
 
-        send_bu = new double [x_cell_n];
-        receive_bu = new double [x_cell_n];
+    send_bu = new double [x_cell_n];
+    receive_bu = new double [x_cell_n];
+
+
+    send_reqs_diff = new MPI_Request [4];
+    recv_reqs_diff = new MPI_Request [4];
 }
 
 void FiniteDifference::solve(double eps) {
@@ -179,64 +183,79 @@ void FiniteDifference::exchange_MPI_arrays() {
 
     int ret;
 
+    int send_count = 0;
+    int recv_count = 0;
+
+    /*
+     * Sending messages
+     */
 
     //left -> right send
     if (!right) {
-        ret = MPI_Send(send_lr, y_cell_n, MPI_DOUBLE, process_id + 1, MPI_LR, communicator);
+        ret = MPI_Isend(send_lr, y_cell_n, MPI_DOUBLE, process_id + 1, MPI_LR, communicator, &(send_reqs_diff[send_count++])  );
         if (ret != MPI_SUCCESS) throw 5;
     }
-
-    // left -> right receive
-    if (!left) {
-        ret = MPI_Recv(receive_lr, y_cell_n, MPI_DOUBLE, process_id - 1, MPI_LR, communicator, MPI_STATUS_IGNORE);
-        if (ret != MPI_SUCCESS) throw 5;
-    }
-
-
-
 
     // right -> left send
     if (!left) {
-        ret = MPI_Send(send_rl, y_cell_n, MPI_DOUBLE, process_id - 1, MPI_RL, communicator);
+        ret = MPI_Isend(send_rl, y_cell_n, MPI_DOUBLE, process_id - 1, MPI_RL, communicator, &(send_reqs_diff[send_count++]));
         if (ret != MPI_SUCCESS) throw 5;
     }
-
-    // right -> left receive
-    if (!right) {
-       ret = MPI_Recv(receive_rl, y_cell_n, MPI_DOUBLE, process_id + 1, MPI_RL, communicator, MPI_STATUS_IGNORE);
-        if (ret != MPI_SUCCESS) throw 5;
-    }
-
-
-    
-
 
     // bottom -> up send
     if (!top) {
-        ret = MPI_Send(send_td, x_cell_n, MPI_DOUBLE, process_id + x_proc_n, MPI_BT, communicator);
+        ret = MPI_Isend(send_td, x_cell_n, MPI_DOUBLE, process_id + x_proc_n, MPI_BT, communicator, &(send_reqs_diff[send_count++]));
         if (ret != MPI_SUCCESS) throw 5;
     }
-
-    // bottom -> up receive
-    if (!bottom) {
-        ret = MPI_Recv(receive_td, x_cell_n, MPI_DOUBLE, process_id - x_proc_n, MPI_BT, communicator, MPI_STATUS_IGNORE);
-        if (ret != MPI_SUCCESS) throw 5;
-    }
-
-
-
 
     // up -> bottom send
     if (!top) {
-        ret = MPI_Send(send_bu, x_cell_n, MPI_DOUBLE, process_id - x_proc_n, MPI_TB, communicator);
+        ret = MPI_Isend(send_bu, x_cell_n, MPI_DOUBLE, process_id - x_proc_n, MPI_TB, communicator, &(send_reqs_diff[send_count++]));
         if (ret != MPI_SUCCESS) throw 5;
     }
 
-    // up -> bottom receive
-    if (!bottom) {
-        ret = MPI_Recv(receive_bu, x_cell_n, MPI_DOUBLE, process_id + x_proc_n, MPI_TB, communicator, MPI_STATUS_IGNORE);
+    ret = MPI_Waitall(
+            send_count,        // int count,
+            send_reqs_diff,   // MPI_Request array_of_requests[],
+            MPI_STATUS_IGNORE   // MPI_Status array_of_statuses[]
+    );
+
+    if (ret != MPI_SUCCESS) throw 5;
+
+
+
+    /*
+     * Receiving messages
+    */
+    // left -> right receive
+    if (!left) {
+        ret = MPI_Irecv(receive_lr, y_cell_n, MPI_DOUBLE, process_id - 1, MPI_LR, communicator, &(recv_reqs_diff[recv_count++]) );
         if (ret != MPI_SUCCESS) throw 5;
     }
+    // right -> left receive
+    if (!right) {
+        ret = MPI_Irecv(receive_rl, y_cell_n, MPI_DOUBLE, process_id + 1, MPI_RL, communicator,  &(recv_reqs_diff[recv_count++]));
+        if (ret != MPI_SUCCESS) throw 5;
+    }
+    // bottom -> up receive
+    if (!bottom) {
+        ret = MPI_Irecv(receive_td, x_cell_n, MPI_DOUBLE, process_id - x_proc_n, MPI_BT, communicator,  &(recv_reqs_diff[recv_count++]));
+        if (ret != MPI_SUCCESS) throw 5;
+        recv_count++;
+    }
+    // up -> bottom receive
+    if (!bottom) {
+        ret = MPI_Irecv(receive_bu, x_cell_n, MPI_DOUBLE, process_id + x_proc_n, MPI_TB, communicator,  &(recv_reqs_diff[recv_count++]));
+        if (ret != MPI_SUCCESS) throw 5;
+    }
+
+    ret = MPI_Waitall(
+            recv_count,        // int count,
+            recv_reqs_diff,   // MPI_Request array_of_requests[],
+            MPI_STATUS_IGNORE   // MPI_Status array_of_statuses[]
+    );
+
+    if (ret != MPI_SUCCESS) throw 5;
 
 }
 
