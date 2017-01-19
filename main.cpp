@@ -24,7 +24,8 @@ int main(int argc, char** argv) {
 
         ProcessConfigurator proc_config;
         proc_config.compute_process_split(process_n);
-
+        // TODO: qwew
+        // dsd: dsada
         // Todo: move all soecific for the task params to cond and use cond as parameter for solve()
         FiniteDifference finiteDifference(&cond, grid_n, grid_n, proc_config.x_proc, proc_config.y_proc,
                                           process_id, 0, 2, 0, 2, communicator);

@@ -176,68 +176,93 @@ void FiniteDifference::exchange_MPI_arrays() {
     /*
      * TODO: TAGS!
      */
-    //left -> right
+
     int ret;
 
+
+    //left -> right send
     if (!right) {
-        ret = MPI_Send(send_lr, y_cell_n, MPI_DOUBLE, process_id + 1, 0, communicator);
-        if (ret != MPI_SUCCESS) throw 5;
-    }
-    if (!left) {
-        ret = MPI_Recv(receive_lr, y_cell_n, MPI_DOUBLE, process_id - 1, 0, communicator, MPI_STATUS_IGNORE);
-        if (ret != MPI_SUCCESS) throw 5;
-    }
-    // right -> left
-    if (!left) {
-        ret = MPI_Send(send_rl, y_cell_n, MPI_DOUBLE, process_id - 1, 0, communicator);
-        if (ret != MPI_SUCCESS) throw 5;
-    }
-    if (!right) {
-       ret = MPI_Recv(receive_rl, y_cell_n, MPI_DOUBLE, process_id + 1, 0, communicator, MPI_STATUS_IGNORE);
-        if (ret != MPI_SUCCESS) throw 5;
-    }
-    // bottom -> up
-    if (!top) {
-        ret = MPI_Send(send_td, x_cell_n, MPI_DOUBLE, process_id + x_proc_n, 0, communicator);
-        if (ret != MPI_SUCCESS) throw 5;
-    }
-    if (!bottom) {
-        ret = MPI_Recv(receive_td, x_cell_n, MPI_DOUBLE, process_id - x_proc_n, 0, communicator, MPI_STATUS_IGNORE);
+        ret = MPI_Send(send_lr, y_cell_n, MPI_DOUBLE, process_id + 1, MPI_LR, communicator);
         if (ret != MPI_SUCCESS) throw 5;
     }
 
-    // up -> bottom
-    if (!top) {
-        ret = MPI_Send(send_bu, x_cell_n, MPI_DOUBLE, process_id - x_proc_n, 0, communicator);
+    // left -> right receive
+    if (!left) {
+        ret = MPI_Recv(receive_lr, y_cell_n, MPI_DOUBLE, process_id - 1, MPI_LR, communicator, MPI_STATUS_IGNORE);
         if (ret != MPI_SUCCESS) throw 5;
     }
+
+
+
+
+    // right -> left send
+    if (!left) {
+        ret = MPI_Send(send_rl, y_cell_n, MPI_DOUBLE, process_id - 1, MPI_RL, communicator);
+        if (ret != MPI_SUCCESS) throw 5;
+    }
+
+    // right -> left receive
+    if (!right) {
+       ret = MPI_Recv(receive_rl, y_cell_n, MPI_DOUBLE, process_id + 1, MPI_RL, communicator, MPI_STATUS_IGNORE);
+        if (ret != MPI_SUCCESS) throw 5;
+    }
+
+
+    
+
+
+    // bottom -> up send
+    if (!top) {
+        ret = MPI_Send(send_td, x_cell_n, MPI_DOUBLE, process_id + x_proc_n, MPI_BT, communicator);
+        if (ret != MPI_SUCCESS) throw 5;
+    }
+
+    // bottom -> up receive
     if (!bottom) {
-        ret = MPI_Recv(receive_bu, x_cell_n, MPI_DOUBLE, process_id + x_proc_n, 0, communicator, MPI_STATUS_IGNORE);
+        ret = MPI_Recv(receive_td, x_cell_n, MPI_DOUBLE, process_id - x_proc_n, MPI_BT, communicator, MPI_STATUS_IGNORE);
+        if (ret != MPI_SUCCESS) throw 5;
+    }
+
+
+
+
+    // up -> bottom send
+    if (!top) {
+        ret = MPI_Send(send_bu, x_cell_n, MPI_DOUBLE, process_id - x_proc_n, MPI_TB, communicator);
+        if (ret != MPI_SUCCESS) throw 5;
+    }
+
+    // up -> bottom receive
+    if (!bottom) {
+        ret = MPI_Recv(receive_bu, x_cell_n, MPI_DOUBLE, process_id + x_proc_n, MPI_TB, communicator, MPI_STATUS_IGNORE);
         if (ret != MPI_SUCCESS) throw 5;
     }
 
 }
 
 void FiniteDifference::difference_equation(double *f, double *df) {
-    int cur_idx;
-    int left_idx;
-    int right_idx;
-    int up_idx;
-    int down_idx;
 
     #pragma omp parallel
     #pragma omp for schedule (static)
-    for (int j = 1; j < y_cell_n - 1; j++)
-        for (int i = 1; i < x_cell_n - 1; i++) {
-            cur_idx = j * x_cell_n + i;
-            left_idx = cur_idx - 1;
-            right_idx = cur_idx + 1;
-            up_idx = (j - 1) * x_cell_n + i;
-            down_idx = (j + 1) * x_cell_n + i;
+    {
+        int cur_idx;
+        int left_idx;
+        int right_idx;
+        int up_idx;
+        int down_idx;
 
-            df[cur_idx] = (2 * f[cur_idx] - f[left_idx] - f[right_idx]) / hx2 +
-                          (2 * f[cur_idx] - f[up_idx] - f[down_idx]) / hy2;
-        }
+        for (int j = 1; j < y_cell_n - 1; j++)
+            for (int i = 1; i < x_cell_n - 1; i++) {
+                cur_idx = j * x_cell_n + i;
+                left_idx = cur_idx - 1;
+                right_idx = cur_idx + 1;
+                up_idx = (j - 1) * x_cell_n + i;
+                down_idx = (j + 1) * x_cell_n + i;
+
+                df[cur_idx] = (2 * f[cur_idx] - f[left_idx] - f[right_idx]) / hx2 +
+                              (2 * f[cur_idx] - f[up_idx] - f[down_idx]) / hy2;
+            }
+    }
 
 }
 
@@ -422,7 +447,6 @@ void FiniteDifference::compute_r() {
 }
 
 void FiniteDifference::compute_g(double a) {
-    int index;
     // biases
     int t_ = (top) ? 1 : 0;
     int b_ = (bottom) ? 1 : 0;
@@ -430,16 +454,18 @@ void FiniteDifference::compute_g(double a) {
     int l_ = (left) ? 1 : 0;
     #pragma omp parallel
     #pragma omp for schedule (static)
-    for (int j = t_; j < y_cell_n - b_; j++){
-        for (int i = l_; i < x_cell_n - r_; i++){
-            index = j * x_cell_n + i;
-            g[index] = r[index] - a * g[index];
+    {
+        int index;
+        for (int j = t_; j < y_cell_n - b_; j++) {
+            for (int i = l_; i < x_cell_n - r_; i++) {
+                index = j * x_cell_n + i;
+                g[index] = r[index] - a * g[index];
+            }
         }
     }
 }
 
 void FiniteDifference::compute_p(double t) {
-    int index;
     // biases
     int t_ = (top) ? 1 : 0;
     int b_ = (bottom) ? 1 : 0;
@@ -448,26 +474,31 @@ void FiniteDifference::compute_p(double t) {
 
     #pragma omp parallel
     #pragma omp for schedule (static)
-    for (int j = t_; j < y_cell_n - b_; j++){
-        for (int i = l_; i < x_cell_n - r_; i++){
-            index = j * x_cell_n + i;
-            p[index] = p_prev[index] - t * g[index];
+    {
+        int index;
+        for (int j = t_; j < y_cell_n - b_; j++) {
+            for (int i = l_; i < x_cell_n - r_; i++) {
+                index = j * x_cell_n + i;
+                p[index] = p_prev[index] - t * g[index];
+            }
         }
     }
 }
 
+
 double FiniteDifference::scalar_product(double *f1, double *f2) {
     double s_local = 0;
-    int index;
     #pragma omp parallel
     #pragma omp for schedule(static) reduction(+:s_local)
-    // Start with y to avoid cache miss
-    for (int j = 0; j < y_cell_n; j++)
-        for (int i = 0; i < x_cell_n; i++) {
-            index = j * x_cell_n + i;
-            s_local += hxhy * f1[index] * f2[index];
-        }
-
+    {
+        int index;
+        // Start with y to avoid cache miss
+        for (int j = 0; j < y_cell_n; j++)
+            for (int i = 0; i < x_cell_n; i++) {
+                index = j * x_cell_n + i;
+                s_local += hxhy * f1[index] * f2[index];
+            }
+    }
     double s_global = 0;
 
     // Summarize s from each of nodes and send to each of nodes

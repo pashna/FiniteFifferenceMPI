@@ -10,6 +10,12 @@
 #include <omp.h>
 //#include <random>
 
+#define MPI_LR 1
+#define MPI_RL 2
+#define MPI_TB 3
+#define MPI_BT 4
+
+
 class FiniteDifference {
 public:
     FiniteDifference(Condition *_c, int x_grid_n, int y_grid_n, int x_proc_n_, int y_proc_n_, int process_id_,
