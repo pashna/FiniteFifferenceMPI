@@ -1,10 +1,9 @@
 # FiniteDifference MPI + OpenMP
+##### Parallel implementation of Dirichlet Problem for Poisson's Equation with Rectangular Area solved by Finite Difference Method.
 
-This algorithm solves the Dirichlet problem for Poisson's equation in a rectangular area using "steep descent iterations" for first several iterations and "conjugate gradient iterations" afterward.
+This algorithm solves the **Dirichlet problem** for **Poisson's equation** in a rectangular area using "steep descent iterations" for first several iterations and "conjugate gradient iterations" afterward.
 
-####Parallel implementation of Dirichlet Problem for Poisson's Equation with Rectangular Area solved by Finite Difference Method.
-
-Parallelism is provided by the bind of OpenMP and MPI technologies.
+Parallelism is provided by the bind of **OpenMP** and **MPI** technologies.
 The program was tested on Lomonosov Supercomputer.
 
 Method keypoints:
